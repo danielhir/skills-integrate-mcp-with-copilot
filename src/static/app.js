@@ -3,6 +3,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
+  const adminUsername = document.getElementById("admin-username");
+  const adminPassword = document.getElementById("admin-password");
+
+  function getAuthHeader() {
+    const username = adminUsername.value.trim();
+    const password = adminPassword.value;
+
+    if (!username || !password) {
+      return null;
+    }
+
+    return `Basic ${btoa(`${username}:${password}`)}`;
+  }
 
   // Function to fetch activities from API
   async function fetchActivities() {
@@ -12,6 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Clear loading message
       activitiesList.innerHTML = "";
+      activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
@@ -72,6 +86,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const button = event.target;
     const activity = button.getAttribute("data-activity");
     const email = button.getAttribute("data-email");
+    const authHeader = getAuthHeader();
+
+    if (!authHeader) {
+      messageDiv.textContent = "Please enter the teacher username and password before changing activity enrollment.";
+      messageDiv.className = "error";
+      messageDiv.classList.remove("hidden");
+      return;
+    }
 
     try {
       const response = await fetch(
@@ -80,6 +102,9 @@ document.addEventListener("DOMContentLoaded", () => {
         )}/unregister?email=${encodeURIComponent(email)}`,
         {
           method: "DELETE",
+          headers: {
+            Authorization: authHeader,
+          },
         }
       );
 
@@ -116,6 +141,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const email = document.getElementById("email").value;
     const activity = document.getElementById("activity").value;
+    const authHeader = getAuthHeader();
+
+    if (!authHeader) {
+      messageDiv.textContent = "Please enter the teacher username and password before registering a student.";
+      messageDiv.className = "error";
+      messageDiv.classList.remove("hidden");
+      return;
+    }
 
     try {
       const response = await fetch(
@@ -124,6 +157,9 @@ document.addEventListener("DOMContentLoaded", () => {
         )}/signup?email=${encodeURIComponent(email)}`,
         {
           method: "POST",
+          headers: {
+            Authorization: authHeader,
+          },
         }
       );
 
