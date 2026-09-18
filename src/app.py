@@ -5,14 +5,37 @@ A super simple FastAPI application that allows students to view and sign up
 for extracurricular activities at Mergington High School.
 """
 
-from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi.staticfiles import StaticFiles
 import os
 from pathlib import Path
 
 app = FastAPI(title="Mergington High School API",
               description="API for viewing and signing up for extracurricular activities")
+
+security = HTTPBasic(auto_error=False)
+ADMIN_USERNAME = "teacher"
+ADMIN_PASSWORD = "admin123"
+
+
+def get_current_admin(
+    credentials: HTTPBasicCredentials | None = Depends(security),
+):
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    if (
+        credentials.username != ADMIN_USERNAME
+        or credentials.password != ADMIN_PASSWORD
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid authentication credentials",
+        )
+
+    return credentials
 
 # Mount the static files directory
 current_dir = Path(__file__).parent
@@ -89,8 +112,12 @@ def get_activities():
 
 
 @app.post("/activities/{activity_name}/signup")
-def signup_for_activity(activity_name: str, email: str):
-    """Sign up a student for an activity"""
+def signup_for_activity(
+    activity_name: str,
+    email: str,
+    credentials: HTTPBasicCredentials = Depends(get_current_admin),
+):
+    """Register a student for an activity using teacher credentials."""
     # Validate activity exists
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
@@ -111,8 +138,12 @@ def signup_for_activity(activity_name: str, email: str):
 
 
 @app.delete("/activities/{activity_name}/unregister")
-def unregister_from_activity(activity_name: str, email: str):
-    """Unregister a student from an activity"""
+def unregister_from_activity(
+    activity_name: str,
+    email: str,
+    credentials: HTTPBasicCredentials = Depends(get_current_admin),
+):
+    """Remove a student from an activity using teacher credentials."""
     # Validate activity exists
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
